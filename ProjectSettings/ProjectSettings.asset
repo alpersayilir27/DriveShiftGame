@@ -820,6 +820,7 @@ PlayerSettings:
   webWasm2023: 0
   scriptingDefineSymbols:
     Standalone: MVC_COMMUNITY
+    WebGL: MVC_COMMUNITY
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:

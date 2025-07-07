@@ -1,22 +1,33 @@
-using JetBrains.Rider.Unity.Editor;
-using TMPro;
-using Unity.Mathematics;
-using Unity.VisualScripting;
 using UnityEngine;
+using TMPro;
+using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class RaceManager : MonoBehaviour
 {
     public static RaceManager Instansce;
+
     [SerializeField] private TextMeshProUGUI currentLapTimeText;
     [SerializeField] private TextMeshProUGUI overallRaceTimeText;
     [SerializeField] private TextMeshProUGUI bestLapTimeText;
     [SerializeField] private TextMeshProUGUI lapText;
     [SerializeField] private TextMeshProUGUI checkpointMissedText;
+
     [SerializeField] private GameObject[] checkpoints;
     [SerializeField] private int lastCheckpointIndex = -1;
     [SerializeField] private bool isCircuit = false;
     [SerializeField] private int totalLaps = 3;
-    [SerializeField] private int currentLap = 1;
+    [SerializeField] private int currentLap = 0;
+
+    [SerializeField] private GameObject raceEndPanel;
+    [SerializeField] private CanvasGroup raceEndPanelCanvasGroup;  // Panel için CanvasGroup (fade için)
+    [SerializeField] private TextMeshProUGUI resultsText;
+
+    [SerializeField] private AudioSource backgroundMusicAudioSource; // Yarış boyunca çalacak müzik
+
+    [SerializeField] private GameObject mobileCanvas;  // Mobil direksiyon vb. UI
+    [SerializeField] private GameObject speedMeterCanvas; // Speed meter UI
+
     private bool raceStarted = false;
     private bool raceFinished = false;
     private bool ifCheckpointMissed = false;
@@ -36,6 +47,24 @@ public class RaceManager : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
+    private void Start()
+    {
+        if (raceEndPanel != null)
+        {
+            raceEndPanel.SetActive(false);
+        }
+        if (raceEndPanelCanvasGroup != null)
+        {
+            raceEndPanelCanvasGroup.alpha = 0f;
+        }
+
+        if (backgroundMusicAudioSource != null)
+        {
+            backgroundMusicAudioSource.Play();
+        }
+    }
+
     private void Update()
     {
         if (raceStarted)
@@ -70,7 +99,6 @@ public class RaceManager : MonoBehaviour
         }
     }
 
-
     private void UpdateCheckpoint(int checkpointIndex)
     {
         if (checkpointIndex == 0)
@@ -92,7 +120,6 @@ public class RaceManager : MonoBehaviour
         lastCheckpointIndex = checkpointIndex;
     }
 
-
     private void OnLapFinished()
     {
         currentLap++;
@@ -102,44 +129,99 @@ public class RaceManager : MonoBehaviour
             bestLapTime = currentLapTime;
         }
 
-        if (currentLap > totalLaps)
+        if (currentLap >= totalLaps)
         {
-            EndRace();
+            StartCoroutine(SmoothStopAndShowPanel());
         }
         else
         {
             currentLapTime = 0f;
             lastCheckpointIndex = isCircuit ? 0 : -1;
         }
-
-        
     }
 
     private void StartRace()
     {
         raceStarted = true;
         raceFinished = false;
+
+        if (raceEndPanel != null)
+            raceEndPanel.SetActive(false);
+
+        Time.timeScale = 1f;
     }
 
-    private void EndRace()
+    private IEnumerator SmoothStopAndShowPanel()
     {
         raceFinished = true;
         raceStarted = false;
+
+        if (mobileCanvas != null)
+        {
+            mobileCanvas.SetActive(false);
+        }
+
+        if (speedMeterCanvas != null)
+        {
+            speedMeterCanvas.SetActive(false);
+        }
+
+        if (raceEndPanel != null)
+        {
+            raceEndPanel.SetActive(true);
+        }
+        if (raceEndPanelCanvasGroup != null)
+        {
+            raceEndPanelCanvasGroup.alpha = 0f;
+        }
+
+        if (resultsText != null)
+        {
+            string bestLapStr = FormatTime(bestLapTime);
+            string overallStr = FormatTime(overallRaceTime);
+            resultsText.text = $"Best Lap Time: {bestLapStr}\nOverall Race Time: {overallStr}";
+        }
+
+        float fadeDuration = 0.5f;
+        float elapsed = 0f;
+
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            if (raceEndPanelCanvasGroup != null)
+                raceEndPanelCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / fadeDuration);
+            yield return null;
+        }
+
+        if (raceEndPanelCanvasGroup != null)
+            raceEndPanelCanvasGroup.alpha = 1f;
+
+        float stopDuration = 1f;
+        elapsed = 0f;
+        float startTimeScale = Time.timeScale;
+
+        while (elapsed < stopDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            Time.timeScale = Mathf.Lerp(startTimeScale, 0f, elapsed / stopDuration);
+            yield return null;
+        }
+        Time.timeScale = 0f;
     }
 
     private void UpdateTimers()
     {
         currentLapTime += Time.deltaTime;
         overallRaceTime += Time.deltaTime;
-
     }
 
     private void UpdateUI()
     {
-        currentLapTimeText.text ="Current Lap Time: "+ FormatTime(currentLapTime);
-        overallRaceTimeText.text ="Overall Race Time: "+ FormatTime(overallRaceTime);
+        currentLapTimeText.text = "Current Lap Time: " + FormatTime(currentLapTime);
+        overallRaceTimeText.text = "Overall Race Time: " + FormatTime(overallRaceTime);
         lapText.text = $"Lap {currentLap}/{totalLaps}";
-        bestLapTimeText.text = "Best Lap Time: " +FormatTime(bestLapTime);
+        bestLapTimeText.text = "Best Lap Time: " + FormatTime(bestLapTime);
+
         UpdateCheckpointMissedText();
     }
 
@@ -153,7 +235,7 @@ public class RaceManager : MonoBehaviour
             checkpointMissedText.color = newColor;
         }
     }
-    
+
     private void ShowCheckpointMissedText()
     {
         if (!ifCheckpointMissed)
@@ -169,7 +251,7 @@ public class RaceManager : MonoBehaviour
         {
             checkpointMissedText.gameObject.SetActive(false);
             ifCheckpointMissed = false;
-        } 
+        }
     }
 
     private string FormatTime(float time)
@@ -181,6 +263,17 @@ public class RaceManager : MonoBehaviour
         return string.Format("{0:00}:{1:00}", minutes, seconds);
     }
 
+    // Butonlara bağlamak için public fonksiyonlar
 
+    public void LoadNextLevel()
+    {
+        Time.timeScale = 1f; // Oyunu tekrar başlat
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+    }
 
+    public void RestartLevel()
+    {
+        Time.timeScale = 1f; // Oyunu tekrar başlat
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
 }

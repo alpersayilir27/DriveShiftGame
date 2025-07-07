@@ -6,11 +6,14 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/CityScene.unity
+    guid: 3dd6985d248a2724291b46a30456112a
+  - enabled: 1
     path: Assets/Scenes/DesertScene.unity
     guid: 7c507b504bc2ed442b4e8bbd7afee9cb
   - enabled: 1
-    path: Assets/Scenes/CityScene.unity
-    guid: 3dd6985d248a2724291b46a30456112a
+    path: Assets/Scenes/ForestScene.unity
+    guid: b9f1a965ac3e580489af7e84e004a320
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
