@@ -276,4 +276,14 @@ public class RaceManager : MonoBehaviour
         Time.timeScale = 1f; // Oyunu tekrar başlat
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
+    public void QuitGame()
+    {
+        Debug.Log("QuitGame called.");
+
+    #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+    #else
+            Application.Quit();
+    #endif
+    }
 }
